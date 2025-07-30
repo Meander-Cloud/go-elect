@@ -14,6 +14,8 @@ type Message struct {
 	NomineeAckResponse *NomineeAckResponse `json:"nominee_ack_response,omitempty" msgpack:",omitempty"`
 	NomineeRelinquish  *NomineeRelinquish  `json:"nominee_relinquish,omitempty" msgpack:",omitempty"`
 
+	AscendantRelinquish *AscendantRelinquish `json:"ascendant_relinquish,omitempty" msgpack:",omitempty"`
+
 	LeaderAnnounce   *LeaderAnnounce   `json:"leader_announce,omitempty" msgpack:",omitempty"`
 	LeaderRelinquish *LeaderRelinquish `json:"leader_relinquish,omitempty" msgpack:",omitempty"`
 }

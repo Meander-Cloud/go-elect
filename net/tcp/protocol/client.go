@@ -22,6 +22,7 @@ type ClientHandler interface {
 	CandidateVoteRequest(*Client, *ConnState, *m.CandidateVoteRequest)
 	NomineeAckRequest(*Client, *ConnState, *m.NomineeAckRequest)
 	NomineeRelinquish(*Client, *ConnState, *m.NomineeRelinquish)
+	AscendantRelinquish(*Client, *ConnState, *m.AscendantRelinquish)
 	LeaderAnnounce(*Client, *ConnState, *m.LeaderAnnounce)
 	LeaderRelinquish(*Client, *ConnState, *m.LeaderRelinquish)
 }
@@ -366,6 +367,23 @@ func (p *Client) ReadLoop(conn net.Conn) {
 						p,
 						connState,
 						messageStruct.NomineeRelinquish,
+					)
+				},
+			)
+		} else if messageStruct.AscendantRelinquish != nil {
+			if cvd.PeerID == "" {
+				err := fmt.Errorf("%s: %s: peer unknown, cannot process AscendantRelinquish=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.AscendantRelinquish)
+				log.Printf("%s", err.Error())
+				return err
+			}
+
+			return p.options.Arbiter.Dispatch(
+				func() {
+					// invoked on arbiter goroutine
+					p.options.AscendantRelinquish(
+						p,
+						connState,
+						messageStruct.AscendantRelinquish,
 					)
 				},
 			)

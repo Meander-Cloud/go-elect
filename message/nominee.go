@@ -3,11 +3,12 @@ package message
 type NomineeAckReason uint8
 
 const (
-	NomineeAckReasonInvalid     NomineeAckReason = 0
-	NomineeAckReasonAgreed      NomineeAckReason = 1
-	NomineeAckReasonRoleNominee NomineeAckReason = 2
-	NomineeAckReasonRoleCouncil NomineeAckReason = 3
-	NomineeAckReasonRoleLeader  NomineeAckReason = 4
+	NomineeAckReasonInvalid       NomineeAckReason = 0
+	NomineeAckReasonAgreed        NomineeAckReason = 1
+	NomineeAckReasonRoleNominee   NomineeAckReason = 2
+	NomineeAckReasonRoleCouncil   NomineeAckReason = 3
+	NomineeAckReasonRoleAscendant NomineeAckReason = 4
+	NomineeAckReasonRoleLeader    NomineeAckReason = 5
 )
 
 func (r NomineeAckReason) String() string {
@@ -20,6 +21,8 @@ func (r NomineeAckReason) String() string {
 		return "Role Nominee"
 	case NomineeAckReasonRoleCouncil:
 		return "Role Council"
+	case NomineeAckReasonRoleAscendant:
+		return "Role Ascendant"
 	case NomineeAckReasonRoleLeader:
 		return "Role Leader"
 	default:

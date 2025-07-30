@@ -37,6 +37,10 @@ func (h *Handler) NomineeRelinquish(*tp.Client, *tp.ConnState, *m.NomineeRelinqu
 
 }
 
+func (h *Handler) AscendantRelinquish(*tp.Client, *tp.ConnState, *m.AscendantRelinquish) {
+
+}
+
 func (h *Handler) LeaderAnnounce(*tp.Client, *tp.ConnState, *m.LeaderAnnounce) {
 
 }

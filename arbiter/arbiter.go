@@ -31,7 +31,7 @@ func NewArbiter(c *config.Config) *Arbiter {
 		s: scheduler.NewScheduler[Group](
 			&scheduler.Options{
 				EventChannelLength: eventChannelLength,
-				LogPrefix:          c.LogPrefix,
+				LogPrefix:          "Arbiter",
 				LogDebug:           c.LogDebug,
 			},
 		),

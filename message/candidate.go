@@ -3,13 +3,14 @@ package message
 type CandidateVoteReason uint8
 
 const (
-	CandidateVoteReasonInvalid     CandidateVoteReason = 0
-	CandidateVoteReasonAgreed      CandidateVoteReason = 1
-	CandidateVoteReasonTermTooLow  CandidateVoteReason = 2
-	CandidateVoteReasonTermVoted   CandidateVoteReason = 3
-	CandidateVoteReasonRoleNominee CandidateVoteReason = 4
-	CandidateVoteReasonRoleCouncil CandidateVoteReason = 5
-	CandidateVoteReasonRoleLeader  CandidateVoteReason = 6
+	CandidateVoteReasonInvalid       CandidateVoteReason = 0
+	CandidateVoteReasonAgreed        CandidateVoteReason = 1
+	CandidateVoteReasonTermTooLow    CandidateVoteReason = 2
+	CandidateVoteReasonTermVoted     CandidateVoteReason = 3
+	CandidateVoteReasonRoleNominee   CandidateVoteReason = 4
+	CandidateVoteReasonRoleCouncil   CandidateVoteReason = 5
+	CandidateVoteReasonRoleAscendant CandidateVoteReason = 6
+	CandidateVoteReasonRoleLeader    CandidateVoteReason = 7
 )
 
 func (r CandidateVoteReason) String() string {
@@ -26,6 +27,8 @@ func (r CandidateVoteReason) String() string {
 		return "Role Nominee"
 	case CandidateVoteReasonRoleCouncil:
 		return "Role Council"
+	case CandidateVoteReasonRoleAscendant:
+		return "Role Ascendant"
 	case CandidateVoteReasonRoleLeader:
 		return "Role Leader"
 	default:

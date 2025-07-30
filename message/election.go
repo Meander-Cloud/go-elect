@@ -8,7 +8,8 @@ const (
 	RoleCandidate Role = 2
 	RoleNominee   Role = 3
 	RoleCouncil   Role = 4
-	RoleLeader    Role = 5
+	RoleAscendant Role = 5
+	RoleLeader    Role = 6
 )
 
 func (r Role) String() string {
@@ -23,6 +24,8 @@ func (r Role) String() string {
 		return "Nominee"
 	case RoleCouncil:
 		return "Council"
+	case RoleAscendant:
+		return "Ascendant"
 	case RoleLeader:
 		return "Leader"
 	default:

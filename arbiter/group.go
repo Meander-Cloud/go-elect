@@ -3,10 +3,12 @@ package arbiter
 type Group uint8
 
 const (
-	GroupInvalid           Group = 0
-	GroupFollowerWait      Group = 1
-	GroupCandidateVoteWait Group = 2
-	GroupNomineeAckWait    Group = 3
+	GroupInvalid              Group = 0
+	GroupFollowerWait         Group = 1
+	GroupCandidateVoteWait    Group = 2
+	GroupNomineeAckWait       Group = 3
+	GroupAscendantAssertWait  Group = 4
+	GroupLeaderQuorumLossWait Group = 5
 )
 
 func (g Group) String() string {
@@ -19,6 +21,10 @@ func (g Group) String() string {
 		return "Candidate Vote Wait"
 	case GroupNomineeAckWait:
 		return "Nominee Ack Wait"
+	case GroupAscendantAssertWait:
+		return "Ascendant Assert Wait"
+	case GroupLeaderQuorumLossWait:
+		return "Leader Quorum Loss Wait"
 	default:
 		return "Unknown Group"
 	}
