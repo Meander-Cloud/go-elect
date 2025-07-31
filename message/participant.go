@@ -6,6 +6,14 @@ type Participant struct {
 	Time     int64  `json:"time"` // epoch milliseconds
 }
 
+func (p *Participant) Clone() *Participant {
+	return &Participant{
+		Host:     p.Host,
+		Instance: p.Instance,
+		Time:     p.Time,
+	}
+}
+
 type ParticipantInit struct {
 	Participant *Participant `json:"participant"`
 	InReconnect bool         `json:"in_reconnect"`

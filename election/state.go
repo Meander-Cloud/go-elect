@@ -20,17 +20,18 @@ type State struct {
 	QuorumParticipantCount uint16
 	PeerMap                map[string]*tp.ConnState
 
-	Role                  m.Role
-	FollowerWaitBase      time.Duration
-	FollowerWaitEpsilon   uint16
-	FollowerWaitScheduled bool
-	SelfTerm              uint32
-	VotedTerm             uint32
-	CandidateVoteYesMap   map[string]struct{}
-	CandidateVoteNoMap    map[string]struct{}
-	NomineeAckYesMap      map[string]struct{}
-	NomineeAckNoMap       map[string]struct{}
-	CouncilForPeer        string
+	Role                          m.Role
+	FollowerWaitBase              time.Duration
+	FollowerWaitEpsilon           uint16
+	FollowerWaitScheduled         bool
+	SelfTerm                      uint32
+	VotedTerm                     uint32
+	CandidateVoteYesMap           map[string]struct{}
+	CandidateVoteNoMap            map[string]struct{}
+	NomineeAckYesMap              map[string]struct{}
+	NomineeAckNoMap               map[string]struct{}
+	CouncilForPeer                string
+	LeaderQuorumLossWaitScheduled bool
 }
 
 func NewState(c *config.Config) *State {
@@ -64,17 +65,18 @@ func NewState(c *config.Config) *State {
 		QuorumParticipantCount: quorumParticipantCount,
 		PeerMap:                make(map[string]*tp.ConnState),
 
-		Role:                  m.RoleFollower,
-		FollowerWaitBase:      time.Millisecond * time.Duration(c.FollowerWaitRange[0]),
-		FollowerWaitEpsilon:   c.FollowerWaitRange[1] - c.FollowerWaitRange[0],
-		FollowerWaitScheduled: false,
-		SelfTerm:              0,
-		VotedTerm:             0,
-		CandidateVoteYesMap:   make(map[string]struct{}),
-		CandidateVoteNoMap:    make(map[string]struct{}),
-		NomineeAckYesMap:      make(map[string]struct{}),
-		NomineeAckNoMap:       make(map[string]struct{}),
-		CouncilForPeer:        "",
+		Role:                          m.RoleFollower,
+		FollowerWaitBase:              time.Millisecond * time.Duration(c.FollowerWaitRange[0]),
+		FollowerWaitEpsilon:           c.FollowerWaitRange[1] - c.FollowerWaitRange[0],
+		FollowerWaitScheduled:         false,
+		SelfTerm:                      0,
+		VotedTerm:                     0,
+		CandidateVoteYesMap:           make(map[string]struct{}),
+		CandidateVoteNoMap:            make(map[string]struct{}),
+		NomineeAckYesMap:              make(map[string]struct{}),
+		NomineeAckNoMap:               make(map[string]struct{}),
+		CouncilForPeer:                "",
+		LeaderQuorumLossWaitScheduled: false,
 	}
 
 	return s

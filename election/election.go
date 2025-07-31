@@ -1,6 +1,9 @@
 package election
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/Meander-Cloud/go-elect/arbiter"
 	"github.com/Meander-Cloud/go-elect/config"
 	"github.com/Meander-Cloud/go-elect/net/tcp"
@@ -8,19 +11,30 @@ import (
 
 type Election struct {
 	c      *config.Config
+	uc     UserCallback
 	a      *arbiter.Arbiter
 	state  *State
 	matrix *tcp.Matrix
 }
 
-func NewElection(c *config.Config) (*Election, error) {
+func NewElection(
+	c *config.Config,
+	uc UserCallback,
+) (*Election, error) {
 	err := c.Validate()
 	if err != nil {
 		return nil, err
 	}
 
+	if uc == nil {
+		err = fmt.Errorf("%s: nil UserCallback", c.LogPrefix)
+		log.Printf("%s", err.Error())
+		return nil, err
+	}
+
 	e := &Election{
 		c:      c,
+		uc:     uc,
 		a:      arbiter.NewArbiter(c),
 		state:  NewState(c),
 		matrix: nil,
@@ -32,7 +46,7 @@ func NewElection(c *config.Config) (*Election, error) {
 		}
 	}()
 
-	h := &Handler{
+	h := &MessageHandler{
 		e: e,
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Meander-Cloud/go-elect/arbiter"
 	m "github.com/Meander-Cloud/go-elect/message"
+	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
 
 // invoked on arbiter goroutine
@@ -28,13 +29,14 @@ func (e *Election) ascendantAssert() {
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantScheduleAssertWait() {
+	group := arbiter.GroupAscendantAssertWait
 	wait := time.Millisecond * time.Duration(e.c.AscendantAssertWait)
 
 	e.a.Scheduler().ProcessSync(
 		&scheduler.ScheduleAsyncEvent[arbiter.Group]{
 			AsyncVariant: scheduler.TimerAsync(
 				true,
-				[]arbiter.Group{arbiter.GroupAscendantAssertWait},
+				[]arbiter.Group{group},
 				wait,
 				func() {
 					// invoked on arbiter goroutine
@@ -56,18 +58,21 @@ func (e *Election) ascendantScheduleAssertWait() {
 	)
 
 	log.Printf(
-		"%s: role=%s, scheduled wait for %v",
+		"%s: role=%s, scheduled<%v>: %s",
 		e.c.LogPrefix,
 		e.state.Role,
 		wait,
+		group,
 	)
 }
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantReleaseAssertWait() {
+	group := arbiter.GroupAscendantAssertWait
+
 	e.a.Scheduler().ProcessSync(
 		&scheduler.ReleaseGroupEvent[arbiter.Group]{
-			Group: arbiter.GroupAscendantAssertWait,
+			Group: group,
 		},
 	)
 
@@ -75,7 +80,7 @@ func (e *Election) ascendantReleaseAssertWait() {
 		"%s: role=%s, released: %s",
 		e.c.LogPrefix,
 		e.state.Role,
-		arbiter.GroupAscendantAssertWait,
+		group,
 	)
 }
 
@@ -110,4 +115,9 @@ func (e *Election) ascendantToLeader() {
 	)
 
 	e.leaderEnact()
+}
+
+// invoked on arbiter goroutine
+func (e *Election) ascendantParticipantInit(connState *tp.ConnState) {
+	e.commonParticipantInit(connState)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Meander-Cloud/go-elect/arbiter"
 	m "github.com/Meander-Cloud/go-elect/message"
+	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
 
 // invoked on arbiter goroutine
@@ -36,13 +37,14 @@ func (e *Election) followerScheduleWait() {
 		return
 	}
 
+	group := arbiter.GroupFollowerWait
 	wait := e.state.GenerateFollowerWait()
 
 	e.a.Scheduler().ProcessSync(
 		&scheduler.ScheduleAsyncEvent[arbiter.Group]{
 			AsyncVariant: scheduler.TimerAsync(
 				true,
-				[]arbiter.Group{arbiter.GroupFollowerWait},
+				[]arbiter.Group{group},
 				wait,
 				func() {
 					// invoked on arbiter goroutine
@@ -58,10 +60,11 @@ func (e *Election) followerScheduleWait() {
 	e.state.FollowerWaitScheduled = true
 
 	log.Printf(
-		"%s: role=%s, scheduled wait for %v",
+		"%s: role=%s, scheduled<%v>: %s",
 		e.c.LogPrefix,
 		e.state.Role,
 		wait,
+		group,
 	)
 }
 
@@ -72,9 +75,11 @@ func (e *Election) followerReleaseWait() {
 		return
 	}
 
+	group := arbiter.GroupFollowerWait
+
 	e.a.Scheduler().ProcessSync(
 		&scheduler.ReleaseGroupEvent[arbiter.Group]{
-			Group: arbiter.GroupFollowerWait,
+			Group: group,
 		},
 	)
 
@@ -84,7 +89,7 @@ func (e *Election) followerReleaseWait() {
 		"%s: role=%s, released: %s",
 		e.c.LogPrefix,
 		e.state.Role,
-		arbiter.GroupFollowerWait,
+		group,
 	)
 }
 
@@ -103,4 +108,11 @@ func (e *Election) followerToCandidate() {
 	)
 
 	e.candidateRequestVote()
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerParticipantInit(connState *tp.ConnState) {
+	e.commonParticipantInit(connState)
+
+	e.followerCheckQuorum()
 }
