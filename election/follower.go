@@ -116,3 +116,11 @@ func (e *Election) followerParticipantInit(connState *tp.ConnState) {
 
 	e.followerCheckQuorum()
 }
+
+// invoked on arbiter goroutine
+func (e *Election) followerParticipantExit(connState *tp.ConnState) {
+	cvd := connState.Data.Load()
+	e.commonParticipantExit(cvd)
+
+	e.followerCheckQuorum()
+}

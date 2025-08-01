@@ -41,7 +41,7 @@ func (e *Election) ascendantScheduleAssertWait() {
 				func() {
 					// invoked on arbiter goroutine
 					log.Printf(
-						"%s: role=%s, wait done, selfTerm=%d, participant<%d> assert: %d<%d>",
+						"%s: role=%s, selfTerm=%d, wait done, participant<%d> assert: %d<%d>",
 						e.c.LogPrefix,
 						e.state.Role,
 						e.state.SelfTerm,
@@ -120,4 +120,48 @@ func (e *Election) ascendantToLeader() {
 // invoked on arbiter goroutine
 func (e *Election) ascendantParticipantInit(connState *tp.ConnState) {
 	e.commonParticipantInit(connState)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) ascendantParticipantExit(connState *tp.ConnState) {
+	cvd := connState.Data.Load()
+	e.commonParticipantExit(cvd)
+
+	participantCount := uint16(len(e.state.PeerMap)) + 1
+
+	func() {
+		if participantCount >= e.state.QuorumParticipantCount {
+			return
+		}
+
+		log.Printf(
+			"%s: role=%s, selfTerm=%d, quorum loss, participant<%d> assert: %d<%d>",
+			e.c.LogPrefix,
+			e.state.Role,
+			e.state.SelfTerm,
+			participantCount,
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+
+		server := e.matrix.Server()
+		for _, connState := range e.state.PeerMap {
+			server.WriteSync(
+				connState,
+				&m.Message{
+					Txseq:  server.GetNextTxseq(),
+					Txtime: time.Now().UTC().UnixMilli(),
+
+					AscendantRelinquish: &m.AscendantRelinquish{
+						Term:   e.state.SelfTerm,
+						Reason: m.AscendantRelinquishReasonQuorumLoss,
+					},
+				},
+			)
+		}
+
+		e.ascendantReleaseAssertWait()
+
+		e.ascendantToFollower()
+	}()
 }

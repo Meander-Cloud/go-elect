@@ -89,7 +89,7 @@ func (e *Election) leaderScheduleQuorumLossWait() {
 					e.state.LeaderQuorumLossWaitScheduled = false
 
 					log.Printf(
-						"%s: role=%s, wait timeout, selfTerm=%d, participant<%d> quorum: %d<%d>",
+						"%s: role=%s, selfTerm=%d, wait timeout, participant<%d> quorum: %d<%d>",
 						e.c.LogPrefix,
 						e.state.Role,
 						e.state.SelfTerm,
@@ -195,6 +195,14 @@ func (e *Election) leaderParticipantInit(p *tp.Server, connState *tp.ConnState) 
 			},
 		},
 	)
+
+	e.leaderCheckQuorum()
+}
+
+// invoked on arbiter goroutine
+func (e *Election) leaderParticipantExit(connState *tp.ConnState) {
+	cvd := connState.Data.Load()
+	e.commonParticipantExit(cvd)
 
 	e.leaderCheckQuorum()
 }

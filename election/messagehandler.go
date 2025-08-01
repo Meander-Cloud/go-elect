@@ -41,11 +41,17 @@ func (h *MessageHandler) ParticipantInit(p *tp.Server, connState *tp.ConnState, 
 func (h *MessageHandler) ParticipantExit(p *tp.Server, connState *tp.ConnState, participantExit *m.ParticipantExit) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerParticipantExit(connState)
 	case m.RoleCandidate:
+		h.e.candidateParticipantExit(connState)
 	case m.RoleNominee:
+		h.e.nomineeParticipantExit(connState)
 	case m.RoleCouncil:
+		h.e.councilParticipantExit(connState)
 	case m.RoleAscendant:
+		h.e.ascendantParticipantExit(connState)
 	case m.RoleLeader:
+		h.e.leaderParticipantExit(connState)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process participantExit=%+v",

@@ -26,3 +26,23 @@ func (e *Election) commonParticipantInit(connState *tp.ConnState) {
 		cvd.Descriptor,
 	)
 }
+
+// invoked on arbiter goroutine
+func (e *Election) commonParticipantExit(cvd *tp.ConnVolatileData) {
+	_, found := e.state.PeerMap[cvd.PeerID]
+	if !found {
+		log.Printf(
+			"%s: %s: peer not found",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+		)
+		return
+	}
+	delete(e.state.PeerMap, cvd.PeerID)
+
+	log.Printf(
+		"%s: %s: peer exited",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+	)
+}

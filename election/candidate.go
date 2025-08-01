@@ -78,7 +78,7 @@ func (e *Election) candidateScheduleVoteWait() {
 				func() {
 					// invoked on arbiter goroutine
 					log.Printf(
-						"%s: role=%s, wait timeout, selfTerm=%d, participant<%d> vote: %d-%d/%d<%d>",
+						"%s: role=%s, selfTerm=%d, wait timeout, participant<%d> vote: %d-%d/%d<%d>",
 						e.c.LogPrefix,
 						e.state.Role,
 						e.state.SelfTerm,
@@ -180,6 +180,71 @@ func (e *Election) candidateParticipantInit(p *tp.Server, connState *tp.ConnStat
 }
 
 // invoked on arbiter goroutine
-func (e *Election) candidateParticipantExit(p *tp.Server, connState *tp.ConnState) {
-	// also remove from vote maps
+func (e *Election) candidateParticipantExit(connState *tp.ConnState) {
+	cvd := connState.Data.Load()
+	e.commonParticipantExit(cvd)
+
+	participantCount := uint16(len(e.state.PeerMap)) + 1
+
+	func() {
+		var found bool
+
+		_, found = e.state.CandidateVoteYesMap[cvd.PeerID]
+		if found {
+			delete(e.state.CandidateVoteYesMap, cvd.PeerID)
+
+			log.Printf(
+				"%s: %s: role=%s, selfTerm=%d, removed vote yes, participant<%d> vote: %d-%d/%d<%d>",
+				e.c.LogPrefix,
+				cvd.Descriptor,
+				e.state.Role,
+				e.state.SelfTerm,
+				participantCount,
+				len(e.state.CandidateVoteYesMap)+1,
+				len(e.state.CandidateVoteNoMap),
+				e.state.QuorumParticipantCount,
+				e.state.TotalParticipantCount,
+			)
+		}
+
+		_, found = e.state.CandidateVoteNoMap[cvd.PeerID]
+		if found {
+			delete(e.state.CandidateVoteNoMap, cvd.PeerID)
+
+			log.Printf(
+				"%s: %s: role=%s, selfTerm=%d, removed vote no, participant<%d> vote: %d-%d/%d<%d>",
+				e.c.LogPrefix,
+				cvd.Descriptor,
+				e.state.Role,
+				e.state.SelfTerm,
+				participantCount,
+				len(e.state.CandidateVoteYesMap)+1,
+				len(e.state.CandidateVoteNoMap),
+				e.state.QuorumParticipantCount,
+				e.state.TotalParticipantCount,
+			)
+		}
+	}()
+
+	func() {
+		if participantCount >= e.state.QuorumParticipantCount {
+			return
+		}
+
+		log.Printf(
+			"%s: role=%s, selfTerm=%d, quorum loss, participant<%d> vote: %d-%d/%d<%d>",
+			e.c.LogPrefix,
+			e.state.Role,
+			e.state.SelfTerm,
+			participantCount,
+			len(e.state.CandidateVoteYesMap)+1,
+			len(e.state.CandidateVoteNoMap),
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+
+		e.candidateReleaseVoteWait()
+
+		e.candidateToFollower()
+	}()
 }

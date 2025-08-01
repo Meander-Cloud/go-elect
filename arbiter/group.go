@@ -7,8 +7,9 @@ const (
 	GroupFollowerWait         Group = 1
 	GroupCandidateVoteWait    Group = 2
 	GroupNomineeAckWait       Group = 3
-	GroupAscendantAssertWait  Group = 4
-	GroupLeaderQuorumLossWait Group = 5
+	GroupCouncilLockWait      Group = 4
+	GroupAscendantAssertWait  Group = 5
+	GroupLeaderQuorumLossWait Group = 6
 )
 
 func (g Group) String() string {
@@ -21,6 +22,8 @@ func (g Group) String() string {
 		return "Candidate Vote Wait"
 	case GroupNomineeAckWait:
 		return "Nominee Ack Wait"
+	case GroupCouncilLockWait:
+		return "Council Lock Wait"
 	case GroupAscendantAssertWait:
 		return "Ascendant Assert Wait"
 	case GroupLeaderQuorumLossWait:

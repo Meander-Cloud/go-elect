@@ -32,7 +32,7 @@ type Config struct {
 	FollowerWaitRange    []uint16
 	CandidateVoteWait    uint16
 	NomineeAckWait       uint16
-	CouncilWait          uint16
+	CouncilLockWait      uint16
 	AscendantAssertWait  uint16
 	LeaderQuorumLossWait uint16
 
@@ -114,14 +114,14 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	if c.CouncilWait == 0 {
-		err := fmt.Errorf("%s: invalid CouncilWait=%d, must allow time for peer advance", c.LogPrefix, c.CouncilWait)
+	if c.CouncilLockWait == 0 {
+		err := fmt.Errorf("%s: invalid CouncilLockWait=%d, must allow time for peer advance", c.LogPrefix, c.CouncilLockWait)
 		log.Printf("%s", err.Error())
 		return err
 	}
 
-	if uint32(c.NomineeAckWait)+uint32(c.AscendantAssertWait) >= uint32(c.CouncilWait) {
-		err := fmt.Errorf("%s: NomineeAckWait plus AscendantAssertWait must be less than CouncilWait to allow time for leader announce", c.LogPrefix)
+	if uint32(c.NomineeAckWait)+uint32(c.AscendantAssertWait) >= uint32(c.CouncilLockWait) {
+		err := fmt.Errorf("%s: NomineeAckWait plus AscendantAssertWait must be less than CouncilLockWait to allow time for leader announce", c.LogPrefix)
 		log.Printf("%s", err.Error())
 		return err
 	}
