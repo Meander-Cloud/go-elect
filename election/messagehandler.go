@@ -67,11 +67,17 @@ func (h *MessageHandler) ParticipantExit(p *tp.Server, connState *tp.ConnState, 
 func (h *MessageHandler) CandidateVoteRequest(p *tp.Client, connState *tp.ConnState, candidateVoteRequest *m.CandidateVoteRequest) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerCandidateVoteRequest(p, connState, candidateVoteRequest)
 	case m.RoleCandidate:
+		h.e.candidateCandidateVoteRequest(p, connState, candidateVoteRequest)
 	case m.RoleNominee:
+		h.e.nomineeCandidateVoteRequest(p, connState, candidateVoteRequest)
 	case m.RoleCouncil:
+		h.e.councilCandidateVoteRequest(p, connState, candidateVoteRequest)
 	case m.RoleAscendant:
+		h.e.ascendantCandidateVoteRequest(p, connState, candidateVoteRequest)
 	case m.RoleLeader:
+		h.e.leaderCandidateVoteRequest(p, connState, candidateVoteRequest)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process candidateVoteRequest=%+v",
@@ -87,11 +93,17 @@ func (h *MessageHandler) CandidateVoteRequest(p *tp.Client, connState *tp.ConnSt
 func (h *MessageHandler) CandidateVoteResponse(p *tp.Server, connState *tp.ConnState, candidateVoteResponse *m.CandidateVoteResponse) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerCandidateVoteResponse(connState, candidateVoteResponse)
 	case m.RoleCandidate:
+		h.e.candidateCandidateVoteResponse(connState, candidateVoteResponse)
 	case m.RoleNominee:
+		h.e.nomineeCandidateVoteResponse(connState, candidateVoteResponse)
 	case m.RoleCouncil:
+		h.e.councilCandidateVoteResponse(connState, candidateVoteResponse)
 	case m.RoleAscendant:
+		h.e.ascendantCandidateVoteResponse(connState, candidateVoteResponse)
 	case m.RoleLeader:
+		h.e.leaderCandidateVoteResponse(connState, candidateVoteResponse)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process candidateVoteResponse=%+v",

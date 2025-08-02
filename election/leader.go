@@ -206,3 +206,58 @@ func (e *Election) leaderParticipantExit(connState *tp.ConnState) {
 
 	e.leaderCheckQuorum()
 }
+
+// invoked on arbiter goroutine
+func (e *Election) leaderCandidateVoteRequest(p *tp.Client, connState *tp.ConnState, candidateVoteRequest *m.CandidateVoteRequest) {
+	var vote uint8 = 0
+	reason := m.CandidateVoteReasonRoleLeader
+	defer func() {
+		p.WriteSync(
+			connState,
+			&m.Message{
+				Txseq:  p.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				CandidateVoteResponse: &m.CandidateVoteResponse{
+					Term:   candidateVoteRequest.Term,
+					Vote:   vote,
+					Reason: reason,
+				},
+			},
+		)
+	}()
+
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, votedTerm=%d, requestTerm=%d, vote=%d, reason=%s, participant<%d> quorum: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		e.state.VotedTerm,
+		candidateVoteRequest.Term,
+		vote,
+		reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) leaderCandidateVoteResponse(connState *tp.ConnState, candidateVoteResponse *m.CandidateVoteResponse) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, no-op vote response, term=%d, vote=%d, reason=%s, participant<%d> quorum: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		candidateVoteResponse.Term,
+		candidateVoteResponse.Vote,
+		candidateVoteResponse.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}

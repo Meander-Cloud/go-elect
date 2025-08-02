@@ -2,6 +2,7 @@ package election
 
 import (
 	"log"
+	"time"
 
 	"github.com/Meander-Cloud/go-schedule/scheduler"
 
@@ -123,4 +124,89 @@ func (e *Election) followerParticipantExit(connState *tp.ConnState) {
 	e.commonParticipantExit(cvd)
 
 	e.followerCheckQuorum()
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerCandidateVoteRequest(p *tp.Client, connState *tp.ConnState, candidateVoteRequest *m.CandidateVoteRequest) {
+	var vote uint8 = 0
+	reason := m.CandidateVoteReasonInvalid
+	defer func() {
+		p.WriteSync(
+			connState,
+			&m.Message{
+				Txseq:  p.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				CandidateVoteResponse: &m.CandidateVoteResponse{
+					Term:   candidateVoteRequest.Term,
+					Vote:   vote,
+					Reason: reason,
+				},
+			},
+		)
+	}()
+
+	cvd := connState.Data.Load()
+	if candidateVoteRequest.Term < e.state.VotedTerm {
+		vote = 0
+		reason = m.CandidateVoteReasonTermTooLow
+
+		log.Printf(
+			"%s: %s: role=%s, votedTerm=%d, requestTerm=%d, vote=%d, reason=%s",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.VotedTerm,
+			candidateVoteRequest.Term,
+			vote,
+			reason,
+		)
+	} else if candidateVoteRequest.Term == e.state.VotedTerm {
+		vote = 0
+		reason = m.CandidateVoteReasonTermVoted
+
+		log.Printf(
+			"%s: %s: role=%s, votedTerm=%d, requestTerm=%d, vote=%d, reason=%s",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.VotedTerm,
+			candidateVoteRequest.Term,
+			vote,
+			reason,
+		)
+	} else {
+		vote = 1
+		reason = m.CandidateVoteReasonAgreed
+
+		oldTerm := e.state.VotedTerm
+		newTerm := candidateVoteRequest.Term
+		e.state.VotedTerm = newTerm
+
+		log.Printf(
+			"%s: %s: role=%s, votedTerm=%d -> %d, requestTerm=%d, vote=%d, reason=%s",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			oldTerm,
+			newTerm,
+			candidateVoteRequest.Term,
+			vote,
+			reason,
+		)
+	}
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerCandidateVoteResponse(connState *tp.ConnState, candidateVoteResponse *m.CandidateVoteResponse) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, no-op vote response, term=%d, vote=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		candidateVoteResponse.Term,
+		candidateVoteResponse.Vote,
+		candidateVoteResponse.Reason,
+	)
 }
