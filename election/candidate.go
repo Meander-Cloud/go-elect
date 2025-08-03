@@ -163,6 +163,25 @@ func (e *Election) candidateToNominee() {
 }
 
 // invoked on arbiter goroutine
+func (e *Election) candidateToCouncil(peerID string, ephemeral bool) {
+	clear(e.state.CandidateVoteYesMap)
+	clear(e.state.CandidateVoteNoMap)
+
+	oldRole := e.state.Role
+	newRole := m.RoleCouncil
+	e.state.Role = newRole
+
+	log.Printf(
+		"%s: role=%s -> %s",
+		e.c.LogPrefix,
+		oldRole,
+		newRole,
+	)
+
+	e.councilLockPeer(peerID, ephemeral)
+}
+
+// invoked on arbiter goroutine
 func (e *Election) candidateParticipantInit(p *tp.Server, connState *tp.ConnState) {
 	e.commonParticipantInit(connState)
 
@@ -348,7 +367,7 @@ func (e *Election) candidateCandidateVoteResponse(connState *tp.ConnState, candi
 
 	if candidateVoteResponse.Term != e.state.SelfTerm {
 		log.Printf(
-			"%s: %s: role=%s, selfTerm=%d, unexpected vote response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+			"%s: %s: role=%s, selfTerm=%d, unexpected vote-response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
@@ -370,7 +389,7 @@ func (e *Election) candidateCandidateVoteResponse(connState *tp.ConnState, candi
 	_, found = e.state.CandidateVoteYesMap[cvd.PeerID]
 	if found {
 		log.Printf(
-			"%s: %s: role=%s, selfTerm=%d, duplicate<YesMap> vote response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+			"%s: %s: role=%s, selfTerm=%d, duplicate<YesMap> vote-response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
@@ -390,7 +409,7 @@ func (e *Election) candidateCandidateVoteResponse(connState *tp.ConnState, candi
 	_, found = e.state.CandidateVoteNoMap[cvd.PeerID]
 	if found {
 		log.Printf(
-			"%s: %s: role=%s, selfTerm=%d, duplicate<NoMap> vote response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+			"%s: %s: role=%s, selfTerm=%d, duplicate<NoMap> vote-response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
@@ -460,7 +479,7 @@ func (e *Election) candidateCandidateVoteResponse(connState *tp.ConnState, candi
 		}()
 	default:
 		log.Printf(
-			"%s: %s: role=%s, selfTerm=%d, invalid vote response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+			"%s: %s: role=%s, selfTerm=%d, invalid vote-response, term=%d, vote=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
@@ -475,4 +494,128 @@ func (e *Election) candidateCandidateVoteResponse(connState *tp.ConnState, candi
 			e.state.TotalParticipantCount,
 		)
 	}
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateNomineeAckRequest(p *tp.Client, connState *tp.ConnState, nomineeAckRequest *m.NomineeAckRequest) {
+	var ack uint8 = 1
+	reason := m.NomineeAckReasonAgreed
+	defer func() {
+		p.WriteSync(
+			connState,
+			&m.Message{
+				Txseq:  p.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				NomineeAckResponse: &m.NomineeAckResponse{
+					Term:   nomineeAckRequest.Term,
+					Ack:    ack,
+					Reason: reason,
+				},
+			},
+		)
+	}()
+
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, requestTerm=%d, ack=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		nomineeAckRequest.Term,
+		ack,
+		reason,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+
+	e.candidateReleaseVoteWait()
+
+	e.candidateToCouncil(cvd.PeerID, true)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateNomineeAckResponse(connState *tp.ConnState, nomineeAckResponse *m.NomineeAckResponse) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, no-op ack-response, term=%d, ack=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		nomineeAckResponse.Term,
+		nomineeAckResponse.Ack,
+		nomineeAckResponse.Reason,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateNomineeRelinquish(connState *tp.ConnState, nomineeRelinquish *m.NomineeRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, no-op nominee-relinquish, term=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		nomineeRelinquish.Term,
+		nomineeRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateAscendantRelinquish(connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, no-op ascendant-relinquish, term=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		ascendantRelinquish.Term,
+		ascendantRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+
+}
+
+// invoked on arbiter goroutine
+func (e *Election) candidateLeaderRelinquish(connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, no-op leader-relinquish, term=%d, reason=%s, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderRelinquish.Term,
+		leaderRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }

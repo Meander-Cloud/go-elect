@@ -119,11 +119,17 @@ func (h *MessageHandler) CandidateVoteResponse(p *tp.Server, connState *tp.ConnS
 func (h *MessageHandler) NomineeAckRequest(p *tp.Client, connState *tp.ConnState, nomineeAckRequest *m.NomineeAckRequest) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerNomineeAckRequest(p, connState, nomineeAckRequest)
 	case m.RoleCandidate:
+		h.e.candidateNomineeAckRequest(p, connState, nomineeAckRequest)
 	case m.RoleNominee:
+		h.e.nomineeNomineeAckRequest(p, connState, nomineeAckRequest)
 	case m.RoleCouncil:
+		h.e.councilNomineeAckRequest(p, connState, nomineeAckRequest)
 	case m.RoleAscendant:
+		h.e.ascendantNomineeAckRequest(p, connState, nomineeAckRequest)
 	case m.RoleLeader:
+		h.e.leaderNomineeAckRequest(p, connState, nomineeAckRequest)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process nomineeAckRequest=%+v",
@@ -139,11 +145,17 @@ func (h *MessageHandler) NomineeAckRequest(p *tp.Client, connState *tp.ConnState
 func (h *MessageHandler) NomineeAckResponse(p *tp.Server, connState *tp.ConnState, nomineeAckResponse *m.NomineeAckResponse) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerNomineeAckResponse(connState, nomineeAckResponse)
 	case m.RoleCandidate:
+		h.e.candidateNomineeAckResponse(connState, nomineeAckResponse)
 	case m.RoleNominee:
+		h.e.nomineeNomineeAckResponse(connState, nomineeAckResponse)
 	case m.RoleCouncil:
+		h.e.councilNomineeAckResponse(connState, nomineeAckResponse)
 	case m.RoleAscendant:
+		h.e.ascendantNomineeAckResponse(connState, nomineeAckResponse)
 	case m.RoleLeader:
+		h.e.leaderNomineeAckResponse(connState, nomineeAckResponse)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process nomineeAckResponse=%+v",
@@ -159,11 +171,17 @@ func (h *MessageHandler) NomineeAckResponse(p *tp.Server, connState *tp.ConnStat
 func (h *MessageHandler) NomineeRelinquish(p *tp.Client, connState *tp.ConnState, nomineeRelinquish *m.NomineeRelinquish) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerNomineeRelinquish(connState, nomineeRelinquish)
 	case m.RoleCandidate:
+		h.e.candidateNomineeRelinquish(connState, nomineeRelinquish)
 	case m.RoleNominee:
+		h.e.nomineeNomineeRelinquish(connState, nomineeRelinquish)
 	case m.RoleCouncil:
+		h.e.councilNomineeRelinquish(connState, nomineeRelinquish)
 	case m.RoleAscendant:
+		h.e.ascendantNomineeRelinquish(connState, nomineeRelinquish)
 	case m.RoleLeader:
+		h.e.leaderNomineeRelinquish(connState, nomineeRelinquish)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process nomineeRelinquish=%+v",
@@ -179,11 +197,17 @@ func (h *MessageHandler) NomineeRelinquish(p *tp.Client, connState *tp.ConnState
 func (h *MessageHandler) AscendantRelinquish(p *tp.Client, connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerAscendantRelinquish(connState, ascendantRelinquish)
 	case m.RoleCandidate:
+		h.e.candidateAscendantRelinquish(connState, ascendantRelinquish)
 	case m.RoleNominee:
+		h.e.nomineeAscendantRelinquish(connState, ascendantRelinquish)
 	case m.RoleCouncil:
+		h.e.councilAscendantRelinquish(connState, ascendantRelinquish)
 	case m.RoleAscendant:
+		h.e.ascendantAscendantRelinquish(connState, ascendantRelinquish)
 	case m.RoleLeader:
+		h.e.leaderAscendantRelinquish(connState, ascendantRelinquish)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process ascendantRelinquish=%+v",
@@ -199,11 +223,17 @@ func (h *MessageHandler) AscendantRelinquish(p *tp.Client, connState *tp.ConnSta
 func (h *MessageHandler) LeaderAnnounce(p *tp.Client, connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerLeaderAnnounce(connState, leaderAnnounce)
 	case m.RoleCandidate:
+		h.e.candidateLeaderAnnounce(connState, leaderAnnounce)
 	case m.RoleNominee:
+		h.e.nomineeLeaderAnnounce(connState, leaderAnnounce)
 	case m.RoleCouncil:
+		h.e.councilLeaderAnnounce(connState, leaderAnnounce)
 	case m.RoleAscendant:
+		h.e.ascendantLeaderAnnounce(connState, leaderAnnounce)
 	case m.RoleLeader:
+		h.e.leaderLeaderAnnounce(connState, leaderAnnounce)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process leaderAnnounce=%+v",
@@ -219,11 +249,17 @@ func (h *MessageHandler) LeaderAnnounce(p *tp.Client, connState *tp.ConnState, l
 func (h *MessageHandler) LeaderRelinquish(p *tp.Client, connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
 	switch h.e.state.Role {
 	case m.RoleFollower:
+		h.e.followerLeaderRelinquish(connState, leaderRelinquish)
 	case m.RoleCandidate:
+		h.e.candidateLeaderRelinquish(connState, leaderRelinquish)
 	case m.RoleNominee:
+		h.e.nomineeLeaderRelinquish(connState, leaderRelinquish)
 	case m.RoleCouncil:
+		h.e.councilLeaderRelinquish(connState, leaderRelinquish)
 	case m.RoleAscendant:
+		h.e.ascendantLeaderRelinquish(connState, leaderRelinquish)
 	case m.RoleLeader:
+		h.e.leaderLeaderRelinquish(connState, leaderRelinquish)
 	default:
 		log.Printf(
 			"%s: %s: role=%s, cannot process leaderRelinquish=%+v",

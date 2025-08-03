@@ -112,6 +112,22 @@ func (e *Election) followerToCandidate() {
 }
 
 // invoked on arbiter goroutine
+func (e *Election) followerToCouncil(peerID string, ephemeral bool) {
+	oldRole := e.state.Role
+	newRole := m.RoleCouncil
+	e.state.Role = newRole
+
+	log.Printf(
+		"%s: role=%s -> %s",
+		e.c.LogPrefix,
+		oldRole,
+		newRole,
+	)
+
+	e.councilLockPeer(peerID, ephemeral)
+}
+
+// invoked on arbiter goroutine
 func (e *Election) followerParticipantInit(connState *tp.ConnState) {
 	e.commonParticipantInit(connState)
 
@@ -201,12 +217,106 @@ func (e *Election) followerCandidateVoteRequest(p *tp.Client, connState *tp.Conn
 func (e *Election) followerCandidateVoteResponse(connState *tp.ConnState, candidateVoteResponse *m.CandidateVoteResponse) {
 	cvd := connState.Data.Load()
 	log.Printf(
-		"%s: %s: role=%s, no-op vote response, term=%d, vote=%d, reason=%s",
+		"%s: %s: role=%s, no-op vote-response, term=%d, vote=%d, reason=%s",
 		e.c.LogPrefix,
 		cvd.Descriptor,
 		e.state.Role,
 		candidateVoteResponse.Term,
 		candidateVoteResponse.Vote,
 		candidateVoteResponse.Reason,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerNomineeAckRequest(p *tp.Client, connState *tp.ConnState, nomineeAckRequest *m.NomineeAckRequest) {
+	var ack uint8 = 1
+	reason := m.NomineeAckReasonAgreed
+	defer func() {
+		p.WriteSync(
+			connState,
+			&m.Message{
+				Txseq:  p.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				NomineeAckResponse: &m.NomineeAckResponse{
+					Term:   nomineeAckRequest.Term,
+					Ack:    ack,
+					Reason: reason,
+				},
+			},
+		)
+	}()
+
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, requestTerm=%d, ack=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		nomineeAckRequest.Term,
+		ack,
+		reason,
+	)
+
+	e.followerReleaseWait()
+
+	e.followerToCouncil(cvd.PeerID, true)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerNomineeAckResponse(connState *tp.ConnState, nomineeAckResponse *m.NomineeAckResponse) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, no-op ack-response, term=%d, ack=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		nomineeAckResponse.Term,
+		nomineeAckResponse.Ack,
+		nomineeAckResponse.Reason,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerNomineeRelinquish(connState *tp.ConnState, nomineeRelinquish *m.NomineeRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, no-op nominee-relinquish, term=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		nomineeRelinquish.Term,
+		nomineeRelinquish.Reason,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerAscendantRelinquish(connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, no-op ascendant-relinquish, term=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		ascendantRelinquish.Term,
+		ascendantRelinquish.Reason,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+
+}
+
+// invoked on arbiter goroutine
+func (e *Election) followerLeaderRelinquish(connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, no-op leader-relinquish, term=%d, reason=%s",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		leaderRelinquish.Term,
+		leaderRelinquish.Reason,
 	)
 }

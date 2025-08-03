@@ -12,6 +12,23 @@ import (
 )
 
 // invoked on arbiter goroutine
+func (e *Election) councilLockPeer(peerID string, ephemeral bool) {
+	e.state.CouncilForPeer = peerID
+
+	log.Printf(
+		"%s: role=%s, peerID=%s, ephemeral=%t",
+		e.c.LogPrefix,
+		e.state.Role,
+		peerID,
+		ephemeral,
+	)
+
+	if ephemeral {
+		e.councilScheduleLockWait()
+	}
+}
+
+// invoked on arbiter goroutine
 func (e *Election) councilScheduleLockWait() {
 	group := arbiter.GroupCouncilLockWait
 	wait := time.Millisecond * time.Duration(e.c.CouncilLockWait)
@@ -161,7 +178,7 @@ func (e *Election) councilCandidateVoteRequest(p *tp.Client, connState *tp.ConnS
 func (e *Election) councilCandidateVoteResponse(connState *tp.ConnState, candidateVoteResponse *m.CandidateVoteResponse) {
 	cvd := connState.Data.Load()
 	log.Printf(
-		"%s: %s: role=%s, councilForPeer=%s, no-op vote response, term=%d, vote=%d, reason=%s, participant<%d> lock: %d<%d>",
+		"%s: %s: role=%s, councilForPeer=%s, no-op vote-response, term=%d, vote=%d, reason=%s, participant<%d> lock: %d<%d>",
 		e.c.LogPrefix,
 		cvd.Descriptor,
 		e.state.Role,
@@ -173,4 +190,78 @@ func (e *Election) councilCandidateVoteResponse(connState *tp.ConnState, candida
 		e.state.QuorumParticipantCount,
 		e.state.TotalParticipantCount,
 	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilNomineeAckRequest(p *tp.Client, connState *tp.ConnState, nomineeAckRequest *m.NomineeAckRequest) {
+	var ack uint8 = 0
+	reason := m.NomineeAckReasonRoleCouncil
+	defer func() {
+		p.WriteSync(
+			connState,
+			&m.Message{
+				Txseq:  p.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				NomineeAckResponse: &m.NomineeAckResponse{
+					Term:   nomineeAckRequest.Term,
+					Ack:    ack,
+					Reason: reason,
+				},
+			},
+		)
+	}()
+
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, councilForPeer=%s, requestTerm=%d, ack=%d, reason=%s, participant<%d> lock: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.CouncilForPeer,
+		nomineeAckRequest.Term,
+		ack,
+		reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilNomineeAckResponse(connState *tp.ConnState, nomineeAckResponse *m.NomineeAckResponse) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, councilForPeer=%s, no-op ack-response, term=%d, ack=%d, reason=%s, participant<%d> lock: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.CouncilForPeer,
+		nomineeAckResponse.Term,
+		nomineeAckResponse.Ack,
+		nomineeAckResponse.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilNomineeRelinquish(connState *tp.ConnState, nomineeRelinquish *m.NomineeRelinquish) {
+
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilAscendantRelinquish(connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
+
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+
+}
+
+// invoked on arbiter goroutine
+func (e *Election) councilLeaderRelinquish(connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
+
 }
