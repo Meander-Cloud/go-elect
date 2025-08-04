@@ -51,6 +51,16 @@ func (e *Election) followerScheduleWait() {
 					// invoked on arbiter goroutine
 					e.state.FollowerWaitScheduled = false
 
+					if e.state.Role != m.RoleFollower {
+						log.Printf(
+							"%s: role=%s mismatch triggered: %s",
+							e.c.LogPrefix,
+							e.state.Role,
+							group,
+						)
+						return
+					}
+
 					e.followerToCandidate()
 				},
 				nil,
@@ -305,7 +315,18 @@ func (e *Election) followerAscendantRelinquish(connState *tp.ConnState, ascendan
 
 // invoked on arbiter goroutine
 func (e *Election) followerLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, leaderTerm=%d",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		leaderAnnounce.Term,
+	)
 
+	e.followerReleaseWait()
+
+	e.followerToCouncil(cvd.PeerID, false)
 }
 
 // invoked on arbiter goroutine

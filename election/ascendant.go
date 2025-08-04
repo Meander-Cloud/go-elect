@@ -40,6 +40,16 @@ func (e *Election) ascendantScheduleAssertWait() {
 				wait,
 				func() {
 					// invoked on arbiter goroutine
+					if e.state.Role != m.RoleAscendant {
+						log.Printf(
+							"%s: role=%s mismatch triggered: %s",
+							e.c.LogPrefix,
+							e.state.Role,
+							group,
+						)
+						return
+					}
+
 					log.Printf(
 						"%s: role=%s, selfTerm=%d, wait done, participant<%d> assert: %d<%d>",
 						e.c.LogPrefix,
@@ -145,9 +155,9 @@ func (e *Election) ascendantParticipantExit(connState *tp.ConnState) {
 		)
 
 		server := e.matrix.Server()
-		for _, connState := range e.state.PeerMap {
+		for _, cs := range e.state.PeerMap {
 			server.WriteSync(
-				connState,
+				cs,
 				&m.Message{
 					Txseq:  server.GetNextTxseq(),
 					Txtime: time.Now().UTC().UnixMilli(),
@@ -294,15 +304,50 @@ func (e *Election) ascendantNomineeRelinquish(connState *tp.ConnState, nomineeRe
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantAscendantRelinquish(connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected ascendant-relinquish, term=%d, reason=%s, participant<%d> assert: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		ascendantRelinquish.Term,
+		ascendantRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected leader-announce, term=%d, participant<%d> assert: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderAnnounce.Term,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantLeaderRelinquish(connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected leader-relinquish, term=%d, reason=%s, participant<%d> assert: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderRelinquish.Term,
+		leaderRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }

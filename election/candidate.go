@@ -47,9 +47,9 @@ func (e *Election) candidateRequestVote() {
 	}
 
 	server := e.matrix.Server()
-	for _, connState := range e.state.PeerMap {
+	for _, cs := range e.state.PeerMap {
 		server.WriteSync(
-			connState,
+			cs,
 			&m.Message{
 				Txseq:  server.GetNextTxseq(),
 				Txtime: time.Now().UTC().UnixMilli(),
@@ -77,6 +77,16 @@ func (e *Election) candidateScheduleVoteWait() {
 				wait,
 				func() {
 					// invoked on arbiter goroutine
+					if e.state.Role != m.RoleCandidate {
+						log.Printf(
+							"%s: role=%s mismatch triggered: %s",
+							e.c.LogPrefix,
+							e.state.Role,
+							group,
+						)
+						return
+					}
+
 					log.Printf(
 						"%s: role=%s, selfTerm=%d, wait timeout, participant<%d> vote: %d-%d/%d<%d>",
 						e.c.LogPrefix,
@@ -598,7 +608,24 @@ func (e *Election) candidateAscendantRelinquish(connState *tp.ConnState, ascenda
 
 // invoked on arbiter goroutine
 func (e *Election) candidateLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, leaderTerm=%d, participant<%d> vote: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderAnnounce.Term,
+		len(e.state.PeerMap)+1,
+		len(e.state.CandidateVoteYesMap)+1,
+		len(e.state.CandidateVoteNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 
+	e.candidateReleaseVoteWait()
+
+	e.candidateToCouncil(cvd.PeerID, false)
 }
 
 // invoked on arbiter goroutine

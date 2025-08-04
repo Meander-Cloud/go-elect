@@ -33,9 +33,9 @@ func (e *Election) nomineeRequestAck() {
 	}
 
 	server := e.matrix.Server()
-	for _, connState := range e.state.PeerMap {
+	for _, cs := range e.state.PeerMap {
 		server.WriteSync(
-			connState,
+			cs,
 			&m.Message{
 				Txseq:  server.GetNextTxseq(),
 				Txtime: time.Now().UTC().UnixMilli(),
@@ -63,6 +63,16 @@ func (e *Election) nomineeScheduleAckWait() {
 				wait,
 				func() {
 					// invoked on arbiter goroutine
+					if e.state.Role != m.RoleNominee {
+						log.Printf(
+							"%s: role=%s mismatch triggered: %s",
+							e.c.LogPrefix,
+							e.state.Role,
+							group,
+						)
+						return
+					}
+
 					log.Printf(
 						"%s: role=%s, selfTerm=%d, wait timeout, participant<%d> ack: %d-%d/%d<%d>",
 						e.c.LogPrefix,
@@ -76,9 +86,9 @@ func (e *Election) nomineeScheduleAckWait() {
 					)
 
 					server := e.matrix.Server()
-					for _, connState := range e.state.PeerMap {
+					for _, cs := range e.state.PeerMap {
 						server.WriteSync(
-							connState,
+							cs,
 							&m.Message{
 								Txseq:  server.GetNextTxseq(),
 								Txtime: time.Now().UTC().UnixMilli(),
@@ -165,6 +175,25 @@ func (e *Election) nomineeToAscendant() {
 }
 
 // invoked on arbiter goroutine
+func (e *Election) nomineeToCouncil(peerID string, ephemeral bool) {
+	clear(e.state.NomineeAckYesMap)
+	clear(e.state.NomineeAckNoMap)
+
+	oldRole := e.state.Role
+	newRole := m.RoleCouncil
+	e.state.Role = newRole
+
+	log.Printf(
+		"%s: role=%s -> %s",
+		e.c.LogPrefix,
+		oldRole,
+		newRole,
+	)
+
+	e.councilLockPeer(peerID, ephemeral)
+}
+
+// invoked on arbiter goroutine
 func (e *Election) nomineeParticipantInit(p *tp.Server, connState *tp.ConnState) {
 	e.commonParticipantInit(connState)
 
@@ -246,9 +275,9 @@ func (e *Election) nomineeParticipantExit(connState *tp.ConnState) {
 		)
 
 		server := e.matrix.Server()
-		for _, connState := range e.state.PeerMap {
+		for _, cs := range e.state.PeerMap {
 			server.WriteSync(
-				connState,
+				cs,
 				&m.Message{
 					Txseq:  server.GetNextTxseq(),
 					Txtime: time.Now().UTC().UnixMilli(),
@@ -366,7 +395,153 @@ func (e *Election) nomineeNomineeAckRequest(p *tp.Client, connState *tp.ConnStat
 
 // invoked on arbiter goroutine
 func (e *Election) nomineeNomineeAckResponse(connState *tp.ConnState, nomineeAckResponse *m.NomineeAckResponse) {
+	cvd := connState.Data.Load()
 
+	if nomineeAckResponse.Term != e.state.SelfTerm {
+		log.Printf(
+			"%s: %s: role=%s, selfTerm=%d, unexpected ack-response, term=%d, ack=%d, reason=%s, participant<%d> ack: %d-%d/%d<%d>",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.SelfTerm,
+			nomineeAckResponse.Term,
+			nomineeAckResponse.Ack,
+			nomineeAckResponse.Reason,
+			len(e.state.PeerMap)+1,
+			len(e.state.NomineeAckYesMap)+1,
+			len(e.state.NomineeAckNoMap),
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+		return
+	}
+
+	var found bool
+
+	_, found = e.state.NomineeAckYesMap[cvd.PeerID]
+	if found {
+		log.Printf(
+			"%s: %s: role=%s, selfTerm=%d, duplicate<YesMap> ack-response, term=%d, ack=%d, reason=%s, participant<%d> ack: %d-%d/%d<%d>",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.SelfTerm,
+			nomineeAckResponse.Term,
+			nomineeAckResponse.Ack,
+			nomineeAckResponse.Reason,
+			len(e.state.PeerMap)+1,
+			len(e.state.NomineeAckYesMap)+1,
+			len(e.state.NomineeAckNoMap),
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+		return
+	}
+
+	_, found = e.state.NomineeAckNoMap[cvd.PeerID]
+	if found {
+		log.Printf(
+			"%s: %s: role=%s, selfTerm=%d, duplicate<NoMap> ack-response, term=%d, ack=%d, reason=%s, participant<%d> ack: %d-%d/%d<%d>",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.SelfTerm,
+			nomineeAckResponse.Term,
+			nomineeAckResponse.Ack,
+			nomineeAckResponse.Reason,
+			len(e.state.PeerMap)+1,
+			len(e.state.NomineeAckYesMap)+1,
+			len(e.state.NomineeAckNoMap),
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+		return
+	}
+
+	switch nomineeAckResponse.Ack {
+	case 1:
+		func() {
+			e.state.NomineeAckYesMap[cvd.PeerID] = struct{}{}
+
+			ackYesCount := uint16(len(e.state.NomineeAckYesMap)) + 1
+
+			log.Printf(
+				"%s: %s: role=%s, selfTerm=%d, added ack yes, participant<%d> ack: %d-%d/%d<%d>",
+				e.c.LogPrefix,
+				cvd.Descriptor,
+				e.state.Role,
+				e.state.SelfTerm,
+				len(e.state.PeerMap)+1,
+				ackYesCount,
+				len(e.state.NomineeAckNoMap),
+				e.state.QuorumParticipantCount,
+				e.state.TotalParticipantCount,
+			)
+
+			if ackYesCount >= e.state.QuorumParticipantCount {
+				e.nomineeReleaseAckWait()
+
+				e.nomineeToAscendant()
+			}
+		}()
+	case 0:
+		func() {
+			e.state.NomineeAckNoMap[cvd.PeerID] = struct{}{}
+
+			ackNoCount := uint16(len(e.state.NomineeAckNoMap))
+
+			log.Printf(
+				"%s: %s: role=%s, selfTerm=%d, added ack no, participant<%d> ack: %d-%d/%d<%d>",
+				e.c.LogPrefix,
+				cvd.Descriptor,
+				e.state.Role,
+				e.state.SelfTerm,
+				len(e.state.PeerMap)+1,
+				len(e.state.NomineeAckYesMap)+1,
+				ackNoCount,
+				e.state.QuorumParticipantCount,
+				e.state.TotalParticipantCount,
+			)
+
+			if ackNoCount >= e.state.QuorumParticipantCount {
+				server := e.matrix.Server()
+				for _, cs := range e.state.PeerMap {
+					server.WriteSync(
+						cs,
+						&m.Message{
+							Txseq:  server.GetNextTxseq(),
+							Txtime: time.Now().UTC().UnixMilli(),
+
+							NomineeRelinquish: &m.NomineeRelinquish{
+								Term:   e.state.SelfTerm,
+								Reason: m.NomineeRelinquishReasonAckFailed,
+							},
+						},
+					)
+				}
+
+				e.nomineeReleaseAckWait()
+
+				e.nomineeToFollower()
+			}
+		}()
+	default:
+		log.Printf(
+			"%s: %s: role=%s, selfTerm=%d, invalid ack-response, term=%d, ack=%d, reason=%s, participant<%d> ack: %d-%d/%d<%d>",
+			e.c.LogPrefix,
+			cvd.Descriptor,
+			e.state.Role,
+			e.state.SelfTerm,
+			nomineeAckResponse.Term,
+			nomineeAckResponse.Ack,
+			nomineeAckResponse.Reason,
+			len(e.state.PeerMap)+1,
+			len(e.state.NomineeAckYesMap)+1,
+			len(e.state.NomineeAckNoMap),
+			e.state.QuorumParticipantCount,
+			e.state.TotalParticipantCount,
+		)
+	}
 }
 
 // invoked on arbiter goroutine
@@ -409,7 +584,40 @@ func (e *Election) nomineeAscendantRelinquish(connState *tp.ConnState, ascendant
 
 // invoked on arbiter goroutine
 func (e *Election) nomineeLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, leaderTerm=%d, participant<%d> ack: %d-%d/%d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderAnnounce.Term,
+		len(e.state.PeerMap)+1,
+		len(e.state.NomineeAckYesMap)+1,
+		len(e.state.NomineeAckNoMap),
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 
+	server := e.matrix.Server()
+	for _, cs := range e.state.PeerMap {
+		server.WriteSync(
+			cs,
+			&m.Message{
+				Txseq:  server.GetNextTxseq(),
+				Txtime: time.Now().UTC().UnixMilli(),
+
+				NomineeRelinquish: &m.NomineeRelinquish{
+					Term:   e.state.SelfTerm,
+					Reason: m.NomineeRelinquishReasonLeaderAnnounced,
+				},
+			},
+		)
+	}
+
+	e.nomineeReleaseAckWait()
+
+	e.nomineeToCouncil(cvd.PeerID, false)
 }
 
 // invoked on arbiter goroutine

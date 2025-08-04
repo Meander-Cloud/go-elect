@@ -25,9 +25,9 @@ func (e *Election) leaderEnact() {
 	)
 
 	server := e.matrix.Server()
-	for _, connState := range e.state.PeerMap {
+	for _, cs := range e.state.PeerMap {
 		server.WriteSync(
-			connState,
+			cs,
 			&m.Message{
 				Txseq:  server.GetNextTxseq(),
 				Txtime: time.Now().UTC().UnixMilli(),
@@ -88,6 +88,16 @@ func (e *Election) leaderScheduleQuorumLossWait() {
 					// invoked on arbiter goroutine
 					e.state.LeaderQuorumLossWaitScheduled = false
 
+					if e.state.Role != m.RoleLeader {
+						log.Printf(
+							"%s: role=%s mismatch triggered: %s",
+							e.c.LogPrefix,
+							e.state.Role,
+							group,
+						)
+						return
+					}
+
 					log.Printf(
 						"%s: role=%s, selfTerm=%d, wait timeout, participant<%d> quorum: %d<%d>",
 						e.c.LogPrefix,
@@ -99,9 +109,9 @@ func (e *Election) leaderScheduleQuorumLossWait() {
 					)
 
 					server := e.matrix.Server()
-					for _, connState := range e.state.PeerMap {
+					for _, cs := range e.state.PeerMap {
 						server.WriteSync(
-							connState,
+							cs,
 							&m.Message{
 								Txseq:  server.GetNextTxseq(),
 								Txtime: time.Now().UTC().UnixMilli(),
@@ -335,15 +345,50 @@ func (e *Election) leaderNomineeRelinquish(connState *tp.ConnState, nomineeRelin
 
 // invoked on arbiter goroutine
 func (e *Election) leaderAscendantRelinquish(connState *tp.ConnState, ascendantRelinquish *m.AscendantRelinquish) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected ascendant-relinquish, term=%d, reason=%s, participant<%d> quorum: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		ascendantRelinquish.Term,
+		ascendantRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }
 
 // invoked on arbiter goroutine
 func (e *Election) leaderLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected leader-announce, term=%d, participant<%d> quorum: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderAnnounce.Term,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }
 
 // invoked on arbiter goroutine
 func (e *Election) leaderLeaderRelinquish(connState *tp.ConnState, leaderRelinquish *m.LeaderRelinquish) {
-
+	cvd := connState.Data.Load()
+	log.Printf(
+		"%s: %s: role=%s, selfTerm=%d, unexpected leader-relinquish, term=%d, reason=%s, participant<%d> quorum: %d<%d>",
+		e.c.LogPrefix,
+		cvd.Descriptor,
+		e.state.Role,
+		e.state.SelfTerm,
+		leaderRelinquish.Term,
+		leaderRelinquish.Reason,
+		len(e.state.PeerMap)+1,
+		e.state.QuorumParticipantCount,
+		e.state.TotalParticipantCount,
+	)
 }

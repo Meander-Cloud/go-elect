@@ -31,6 +31,7 @@ type State struct {
 	NomineeAckYesMap              map[string]struct{}
 	NomineeAckNoMap               map[string]struct{}
 	CouncilForPeer                string
+	CouncilLockWaitScheduled      bool
 	LeaderQuorumLossWaitScheduled bool
 }
 
@@ -76,6 +77,7 @@ func NewState(c *config.Config) *State {
 		NomineeAckYesMap:              make(map[string]struct{}),
 		NomineeAckNoMap:               make(map[string]struct{}),
 		CouncilForPeer:                "",
+		CouncilLockWaitScheduled:      false,
 		LeaderQuorumLossWaitScheduled: false,
 	}
 
