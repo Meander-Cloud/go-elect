@@ -317,7 +317,7 @@ func (e *Election) followerAscendantRelinquish(connState *tp.ConnState, ascendan
 func (e *Election) followerLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
 	cvd := connState.Data.Load()
 	log.Printf(
-		"%s: %s: role=%s, leaderTerm=%d",
+		"%s: %s: role=%s, received leader-announce, term=%d",
 		e.c.LogPrefix,
 		cvd.Descriptor,
 		e.state.Role,

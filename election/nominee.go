@@ -586,7 +586,7 @@ func (e *Election) nomineeAscendantRelinquish(connState *tp.ConnState, ascendant
 func (e *Election) nomineeLeaderAnnounce(connState *tp.ConnState, leaderAnnounce *m.LeaderAnnounce) {
 	cvd := connState.Data.Load()
 	log.Printf(
-		"%s: %s: role=%s, selfTerm=%d, leaderTerm=%d, participant<%d> ack: %d-%d/%d<%d>",
+		"%s: %s: role=%s, selfTerm=%d, received leader-announce, term=%d, participant<%d> ack: %d-%d/%d<%d>",
 		e.c.LogPrefix,
 		cvd.Descriptor,
 		e.state.Role,

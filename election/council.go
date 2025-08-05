@@ -362,7 +362,7 @@ func (e *Election) councilLeaderAnnounce(connState *tp.ConnState, leaderAnnounce
 		e.state.CouncilForPeer = newForPeer
 
 		log.Printf(
-			"%s: %s: role=%s, councilForPeer=%s -> %s, leaderTerm=%d, participant<%d> lock: %d<%d>",
+			"%s: %s: role=%s, councilForPeer=%s -> %s, received leader-announce, term=%d, participant<%d> lock: %d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
@@ -375,7 +375,7 @@ func (e *Election) councilLeaderAnnounce(connState *tp.ConnState, leaderAnnounce
 		)
 	} else {
 		log.Printf(
-			"%s: %s: role=%s, councilForPeer=%s, leaderTerm=%d, participant<%d> lock: %d<%d>",
+			"%s: %s: role=%s, councilForPeer=%s, received leader-announce, term=%d, participant<%d> lock: %d<%d>",
 			e.c.LogPrefix,
 			cvd.Descriptor,
 			e.state.Role,
