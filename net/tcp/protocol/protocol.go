@@ -40,3 +40,8 @@ type ConnState struct {
 	Data  atomic.Pointer[ConnVolatileData]
 	Ready atomic.Bool
 }
+
+type ReconnectData struct {
+	DisconnectTime time.Time
+	ReconnectTimer *time.Timer
+}

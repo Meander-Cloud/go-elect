@@ -234,7 +234,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 
 					ParticipantInit: &m.ParticipantInit{
 						Participant: p.options.SelfParticipant,
-						InReconnect: true,
+						InReconnect: false,
 					},
 				},
 			)
@@ -299,10 +299,10 @@ func (p *Client) ReadLoop(conn net.Conn) {
 			)
 			connState.Data.Store(cvd) // atomic
 
-			peerInReconnect := messageStruct.ParticipantInit.InReconnect
+			inReconnect := messageStruct.ParticipantInit.InReconnect
 
 			connState.Ready.Store(true)
-			log.Printf("%s: %s: connection now ready, peerInReconnect=%t", p.options.LogPrefix, cvd.Descriptor, peerInReconnect)
+			log.Printf("%s: %s: connection now ready, inReconnect=%t", p.options.LogPrefix, cvd.Descriptor, inReconnect)
 
 			return nil
 		} else if messageStruct.ParticipantExit != nil {

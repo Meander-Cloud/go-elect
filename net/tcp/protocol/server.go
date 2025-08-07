@@ -48,8 +48,9 @@ type Server struct {
 	connIDGen atomic.Uint32
 	txseqGen  atomic.Uint64
 
-	mutex   sync.Mutex
-	connMap map[uint32]*ConnState // connID -> tcp connection state
+	mutex            sync.Mutex
+	connStateMap     map[uint32]*ConnState     // connID -> tcp connection state
+	peerReconnectMap map[string]*ReconnectData // peerID -> reconnect data
 }
 
 func NewServer(options *ServerOptions) (*Server, error) {
@@ -78,8 +79,9 @@ func NewServer(options *ServerOptions) (*Server, error) {
 		connIDGen: atomic.Uint32{},
 		txseqGen:  atomic.Uint64{},
 
-		mutex:   sync.Mutex{},
-		connMap: make(map[uint32]*ConnState),
+		mutex:            sync.Mutex{},
+		connStateMap:     make(map[uint32]*ConnState),
+		peerReconnectMap: make(map[string]*ReconnectData),
 	}
 
 	return p, nil
@@ -100,7 +102,7 @@ func (p *Server) Close() {
 		p.mutex.Lock()
 		defer p.mutex.Unlock()
 
-		for _, volatileConnState := range p.connMap {
+		for _, volatileConnState := range p.connStateMap {
 			scopedConnState := volatileConnState
 			scopedConnState.Ready.Store(false)
 
@@ -140,7 +142,7 @@ func (p *Server) Close() {
 		p.mutex.Lock()
 		defer p.mutex.Unlock()
 
-		for _, connState := range p.connMap {
+		for _, connState := range p.connStateMap {
 			connState.Conn.Close()
 		}
 	}()
@@ -212,14 +214,80 @@ func (p *Server) ReadLoop(conn net.Conn) {
 			p.mutex.Lock()
 			defer p.mutex.Unlock()
 
-			_, found := p.connMap[connState.ConnID]
-			if !found {
-				log.Printf("%s: %s: connID=%d not found in connection map", p.options.LogPrefix, cvd.Descriptor, connState.ConnID)
-				return
-			}
-			delete(p.connMap, connState.ConnID)
+			func() {
+				_, found := p.connStateMap[connState.ConnID]
+				if !found {
+					log.Printf("%s: %s: connID=%d not found in connection map", p.options.LogPrefix, cvd.Descriptor, connState.ConnID)
+					return
+				}
+				delete(p.connStateMap, connState.ConnID)
+			}()
 
-			// TODO - reconnect logic
+			func() {
+				if selfInShutdown {
+					return
+				}
+
+				if cvd.PeerID == "" {
+					log.Printf("%s: %s: peer unknown, no need to time reconnect", p.options.LogPrefix, cvd.Descriptor)
+					return
+				}
+				scopedPeerID := cvd.PeerID
+
+				cached, found := p.peerReconnectMap[scopedPeerID]
+				if found {
+					log.Printf(
+						"%s: %s: overriding duplicate reconnect timer, disconnectTime=%s",
+						p.options.LogPrefix,
+						cvd.Descriptor,
+						cached.DisconnectTime.Format(time.RFC3339),
+					)
+					cached.ReconnectTimer.Stop()
+				}
+
+				wait := p.options.ReconnectWindow
+				timer := time.AfterFunc(
+					wait,
+					func() {
+						// invoked on timer goroutine
+						p.mutex.Lock()
+						defer p.mutex.Unlock()
+
+						cached, found := p.peerReconnectMap[scopedPeerID]
+						if !found {
+							log.Printf(
+								"%s: peerID=%s, no reconnect data found",
+								p.options.LogPrefix,
+								scopedPeerID,
+							)
+							return
+						}
+						delete(p.peerReconnectMap, scopedPeerID)
+
+						log.Printf(
+							"%s: peerID=%s, disconnectTime=%s, reconnect window ended",
+							p.options.LogPrefix,
+							scopedPeerID,
+							cached.DisconnectTime.Format(time.RFC3339),
+						)
+					},
+				)
+
+				reconnectData := &ReconnectData{
+					DisconnectTime: time.Now().UTC(),
+					ReconnectTimer: timer,
+				}
+				p.peerReconnectMap[scopedPeerID] = reconnectData
+
+				log.Printf(
+					"%s: %s: scheduled<%v>: %s reconnect timer, disconnectTime=%s",
+					p.options.LogPrefix,
+					cvd.Descriptor,
+					wait,
+					network,
+					reconnectData.DisconnectTime.Format(time.RFC3339),
+				)
+			}()
 		}()
 
 		conn.Close()
@@ -230,11 +298,11 @@ func (p *Server) ReadLoop(conn net.Conn) {
 		p.mutex.Lock()
 		defer p.mutex.Unlock()
 
-		cached, found := p.connMap[connState.ConnID]
+		cached, found := p.connStateMap[connState.ConnID]
 		if found {
 			log.Printf("%s: %s: overriding duplicate connection %s", p.options.LogPrefix, cvd.Descriptor, cached.Data.Load().Descriptor)
 		}
-		p.connMap[connState.ConnID] = connState
+		p.connStateMap[connState.ConnID] = connState
 	}()
 
 	handleMessage := func(messageStruct *m.Message) error {
@@ -292,9 +360,28 @@ func (p *Server) ReadLoop(conn net.Conn) {
 			)
 			connState.Data.Store(cvd) // atomic
 
-			// TODO - reconnect logic
-			peerInReconnect := messageStruct.ParticipantInit.InReconnect
-			inReconnect := peerInReconnect
+			peerInReconnectWindow := func() bool {
+				p.mutex.Lock()
+				defer p.mutex.Unlock()
+
+				cached, found := p.peerReconnectMap[cvd.PeerID]
+				if !found {
+					return false
+				}
+				cached.ReconnectTimer.Stop()
+				delete(p.peerReconnectMap, cvd.PeerID)
+
+				log.Printf(
+					"%s: %s: peer reconnected after %v",
+					p.options.LogPrefix,
+					cvd.Descriptor,
+					time.Now().UTC().Sub(cached.DisconnectTime),
+				)
+
+				return true
+			}()
+			peerConveyedInReconnect := messageStruct.ParticipantInit.InReconnect
+			inReconnect := peerInReconnectWindow || peerConveyedInReconnect
 			messageStruct.ParticipantInit.InReconnect = inReconnect
 
 			scopedDescriptor := cvd.Descriptor
@@ -533,7 +620,7 @@ func (p *Server) CheckConnection(connID uint32) bool {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	connState, found := p.connMap[connID]
+	connState, found := p.connStateMap[connID]
 	if !found {
 		return false
 	}
@@ -546,7 +633,7 @@ func (p *Server) GetConnection(connID uint32) (*ConnState, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	connState, found := p.connMap[connID]
+	connState, found := p.connStateMap[connID]
 	if !found {
 		err := fmt.Errorf("%s: connID=%d, no active connection", p.options.LogPrefix, connID)
 		log.Printf("%s", err.Error())
