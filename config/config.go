@@ -13,6 +13,7 @@ const (
 	TcpKeepAliveCount    uint16        = 2
 	TcpDialTimeout       time.Duration = time.Second * 3
 	TcpReconnectInterval time.Duration = time.Second * 5
+	TcpReconnectLogEvery uint32        = 120
 	TcpReconnectWindow   time.Duration = time.Second * 17
 )
 
@@ -23,18 +24,19 @@ type Config struct {
 
 	SelfAddress          string
 	PeerAddressList      []string
-	TcpKeepAliveInterval uint16
+	TcpKeepAliveInterval uint16 // s
 	TcpKeepAliveCount    uint16
-	TcpDialTimeout       uint16
-	TcpReconnectInterval uint16
-	TcpReconnectWindow   uint16
+	TcpDialTimeout       uint16 // s
+	TcpReconnectInterval uint16 // s
+	TcpReconnectLogEvery uint32
+	TcpReconnectWindow   uint16 // s
 
-	FollowerWaitRange    []uint16
-	CandidateVoteWait    uint16
-	NomineeAckWait       uint16
-	CouncilLockWait      uint16
-	AscendantAssertWait  uint16
-	LeaderQuorumLossWait uint16
+	FollowerWaitRange    []uint16 // ms
+	CandidateVoteWait    uint16   // ms
+	NomineeAckWait       uint16   // ms
+	CouncilLockWait      uint16   // ms
+	AscendantAssertWait  uint16   // ms
+	LeaderQuorumLossWait uint16   // ms
 
 	LogPrefix string
 	LogDebug  bool

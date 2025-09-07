@@ -62,6 +62,7 @@ func test1() {
 		TcpKeepAliveCount:    2,
 		TcpDialTimeout:       3,
 		TcpReconnectInterval: 5,
+		TcpReconnectLogEvery: 6,
 		TcpReconnectWindow:   17,
 
 		FollowerWaitRange: []uint16{

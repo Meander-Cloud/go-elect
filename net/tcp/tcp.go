@@ -64,6 +64,13 @@ func NewMatrix(
 		tcpReconnectInterval = time.Second * time.Duration(c.TcpReconnectInterval)
 	}
 
+	var tcpReconnectLogEvery uint32
+	if c.TcpReconnectLogEvery == 0 {
+		tcpReconnectLogEvery = config.TcpReconnectLogEvery
+	} else {
+		tcpReconnectLogEvery = c.TcpReconnectLogEvery
+	}
+
 	var tcpReconnectWindow time.Duration
 	if c.TcpReconnectWindow == 0 {
 		tcpReconnectWindow = config.TcpReconnectWindow
@@ -94,6 +101,7 @@ func NewMatrix(
 				KeepAliveCount:    tcpKeepAliveCount,
 				DialTimeout:       tcpDialTimeout,
 				ReconnectInterval: tcpReconnectInterval,
+				ReconnectLogEvery: tcpReconnectLogEvery,
 				Protocol:          nil,
 				LogPrefix:         "Server",
 				LogDebug:          c.LogDebug,
@@ -140,6 +148,7 @@ func NewMatrix(
 					KeepAliveCount:    tcpKeepAliveCount,
 					DialTimeout:       tcpDialTimeout,
 					ReconnectInterval: tcpReconnectInterval,
+					ReconnectLogEvery: tcpReconnectLogEvery,
 					Protocol:          nil,
 					LogPrefix:         fmt.Sprintf("Client-%d", index+1),
 					LogDebug:          c.LogDebug,
