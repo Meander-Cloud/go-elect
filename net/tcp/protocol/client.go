@@ -12,9 +12,10 @@ import (
 
 	"github.com/vmihailenco/msgpack/v5"
 
+	"github.com/Meander-Cloud/go-arbiter/arbiter"
 	"github.com/Meander-Cloud/go-transport/tcp"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
+	g "github.com/Meander-Cloud/go-elect/group"
 	m "github.com/Meander-Cloud/go-elect/message"
 )
 
@@ -29,7 +30,7 @@ type ClientHandler interface {
 
 type ClientOptions struct {
 	*tcp.Options
-	Arbiter *arbiter.Arbiter
+	Arbiter *arbiter.Arbiter[g.Group]
 	ClientHandler
 
 	Txid    byte
@@ -112,7 +113,7 @@ func (p *Client) Close() {
 		connState.Ready.Store(false)
 
 		exitwg.Add(1)
-		err := p.options.Arbiter.Dispatch(
+		p.options.Arbiter.Dispatch(
 			func() {
 				// invoked on arbiter goroutine
 				defer exitwg.Done()
@@ -132,9 +133,6 @@ func (p *Client) Close() {
 				)
 			},
 		)
-		if err != nil {
-			exitwg.Done()
-		}
 	}()
 
 	// wait until peer update is sent plus one second grace period
@@ -221,7 +219,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 	}()
 
 	// initiate ParticipantInit
-	err := p.options.Arbiter.Dispatch(
+	p.options.Arbiter.Dispatch(
 		func() {
 			// invoked on arbiter goroutine
 			writeWireData(
@@ -240,9 +238,6 @@ func (p *Client) ReadLoop(conn net.Conn) {
 			)
 		},
 	)
-	if err != nil {
-		return
-	}
 
 	handleMessage := func(messageStruct *m.Message) error {
 		if messageStruct.ParticipantInit != nil {
@@ -326,7 +321,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.CandidateVoteRequest(
@@ -336,6 +331,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else if messageStruct.NomineeAckRequest != nil {
 			if cvd.PeerID == "" {
 				err := fmt.Errorf("%s: %s: peer unknown, cannot process NomineeAckRequest=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.NomineeAckRequest)
@@ -343,7 +340,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.NomineeAckRequest(
@@ -353,6 +350,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else if messageStruct.NomineeRelinquish != nil {
 			if cvd.PeerID == "" {
 				err := fmt.Errorf("%s: %s: peer unknown, cannot process NomineeRelinquish=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.NomineeRelinquish)
@@ -360,7 +359,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.NomineeRelinquish(
@@ -370,6 +369,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else if messageStruct.AscendantRelinquish != nil {
 			if cvd.PeerID == "" {
 				err := fmt.Errorf("%s: %s: peer unknown, cannot process AscendantRelinquish=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.AscendantRelinquish)
@@ -377,7 +378,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.AscendantRelinquish(
@@ -387,6 +388,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else if messageStruct.LeaderAnnounce != nil {
 			if cvd.PeerID == "" {
 				err := fmt.Errorf("%s: %s: peer unknown, cannot process LeaderAnnounce=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.LeaderAnnounce)
@@ -394,7 +397,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.LeaderAnnounce(
@@ -404,6 +407,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else if messageStruct.LeaderRelinquish != nil {
 			if cvd.PeerID == "" {
 				err := fmt.Errorf("%s: %s: peer unknown, cannot process LeaderRelinquish=%+v", p.options.LogPrefix, cvd.Descriptor, *messageStruct.LeaderRelinquish)
@@ -411,7 +416,7 @@ func (p *Client) ReadLoop(conn net.Conn) {
 				return err
 			}
 
-			return p.options.Arbiter.Dispatch(
+			p.options.Arbiter.Dispatch(
 				func() {
 					// invoked on arbiter goroutine
 					p.options.LeaderRelinquish(
@@ -421,6 +426,8 @@ func (p *Client) ReadLoop(conn net.Conn) {
 					)
 				},
 			)
+
+			return nil
 		} else {
 			err := fmt.Errorf("%s: %s: unsupported messageStruct=%+v", p.options.LogPrefix, cvd.Descriptor, messageStruct)
 			log.Printf("%s", err.Error())
@@ -543,7 +550,7 @@ func (p *Client) WriteSync(connState *ConnState, messageStruct *m.Message) error
 
 // invoked on any goroutine
 func (p *Client) WriteAsync(connState *ConnState, messageStruct *m.Message) error {
-	return p.options.Arbiter.Dispatch(
+	p.options.Arbiter.Dispatch(
 		func() {
 			// invoked on arbiter goroutine
 			writeWireData(
@@ -554,4 +561,6 @@ func (p *Client) WriteAsync(connState *ConnState, messageStruct *m.Message) erro
 			)
 		},
 	)
+
+	return nil
 }

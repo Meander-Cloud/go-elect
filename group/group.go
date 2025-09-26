@@ -1,4 +1,4 @@
-package arbiter
+package group
 
 type Group uint8
 

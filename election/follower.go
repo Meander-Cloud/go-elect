@@ -6,7 +6,7 @@ import (
 
 	"github.com/Meander-Cloud/go-schedule/scheduler"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
+	g "github.com/Meander-Cloud/go-elect/group"
 	m "github.com/Meander-Cloud/go-elect/message"
 	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
@@ -38,14 +38,14 @@ func (e *Election) followerScheduleWait() {
 		return
 	}
 
-	group := arbiter.GroupFollowerWait
+	group := g.GroupFollowerWait
 	wait := e.state.GenerateFollowerWait()
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ScheduleAsyncEvent[arbiter.Group]{
+		&scheduler.ScheduleAsyncEvent[g.Group]{
 			AsyncVariant: scheduler.TimerAsync(
 				true,
-				[]arbiter.Group{group},
+				[]g.Group{group},
 				wait,
 				func() {
 					// invoked on arbiter goroutine
@@ -86,10 +86,10 @@ func (e *Election) followerReleaseWait() {
 		return
 	}
 
-	group := arbiter.GroupFollowerWait
+	group := g.GroupFollowerWait
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ReleaseGroupEvent[arbiter.Group]{
+		&scheduler.ReleaseGroupEvent[g.Group]{
 			Group: group,
 		},
 	)

@@ -6,7 +6,7 @@ import (
 
 	"github.com/Meander-Cloud/go-schedule/scheduler"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
+	g "github.com/Meander-Cloud/go-elect/group"
 	m "github.com/Meander-Cloud/go-elect/message"
 	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
@@ -29,14 +29,14 @@ func (e *Election) ascendantAssert() {
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantScheduleAssertWait() {
-	group := arbiter.GroupAscendantAssertWait
+	group := g.GroupAscendantAssertWait
 	wait := time.Millisecond * time.Duration(e.c.AscendantAssertWait)
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ScheduleAsyncEvent[arbiter.Group]{
+		&scheduler.ScheduleAsyncEvent[g.Group]{
 			AsyncVariant: scheduler.TimerAsync(
 				true,
-				[]arbiter.Group{group},
+				[]g.Group{group},
 				wait,
 				func() {
 					// invoked on arbiter goroutine
@@ -78,10 +78,10 @@ func (e *Election) ascendantScheduleAssertWait() {
 
 // invoked on arbiter goroutine
 func (e *Election) ascendantReleaseAssertWait() {
-	group := arbiter.GroupAscendantAssertWait
+	group := g.GroupAscendantAssertWait
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ReleaseGroupEvent[arbiter.Group]{
+		&scheduler.ReleaseGroupEvent[g.Group]{
 			Group: group,
 		},
 	)

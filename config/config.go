@@ -8,7 +8,6 @@ import (
 
 const (
 	// defaults for when not provided in Config
-	EventChannelLength   uint16        = 1024
 	TcpKeepAliveInterval time.Duration = time.Second * 17
 	TcpKeepAliveCount    uint16        = 2
 	TcpDialTimeout       time.Duration = time.Second * 3
@@ -18,9 +17,8 @@ const (
 )
 
 type Config struct {
-	Host               string
-	Instance           string
-	EventChannelLength uint16
+	Host     string
+	Instance string
 
 	SelfAddress          string
 	PeerAddressList      []string

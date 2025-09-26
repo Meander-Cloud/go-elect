@@ -52,9 +52,8 @@ func test1() {
 
 	instance := os.Args[1]
 	c := &config.Config{
-		Host:               "",
-		Instance:           instance,
-		EventChannelLength: 256,
+		Host:     "",
+		Instance: instance,
 
 		SelfAddress:          "",
 		PeerAddressList:      nil,

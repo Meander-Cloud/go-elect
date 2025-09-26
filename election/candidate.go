@@ -6,7 +6,7 @@ import (
 
 	"github.com/Meander-Cloud/go-schedule/scheduler"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
+	g "github.com/Meander-Cloud/go-elect/group"
 	m "github.com/Meander-Cloud/go-elect/message"
 	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
@@ -66,14 +66,14 @@ func (e *Election) candidateRequestVote() {
 
 // invoked on arbiter goroutine
 func (e *Election) candidateScheduleVoteWait() {
-	group := arbiter.GroupCandidateVoteWait
+	group := g.GroupCandidateVoteWait
 	wait := time.Millisecond * time.Duration(e.c.CandidateVoteWait)
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ScheduleAsyncEvent[arbiter.Group]{
+		&scheduler.ScheduleAsyncEvent[g.Group]{
 			AsyncVariant: scheduler.TimerAsync(
 				true,
-				[]arbiter.Group{group},
+				[]g.Group{group},
 				wait,
 				func() {
 					// invoked on arbiter goroutine
@@ -117,10 +117,10 @@ func (e *Election) candidateScheduleVoteWait() {
 
 // invoked on arbiter goroutine
 func (e *Election) candidateReleaseVoteWait() {
-	group := arbiter.GroupCandidateVoteWait
+	group := g.GroupCandidateVoteWait
 
 	e.a.Scheduler().ProcessSync(
-		&scheduler.ReleaseGroupEvent[arbiter.Group]{
+		&scheduler.ReleaseGroupEvent[g.Group]{
 			Group: group,
 		},
 	)

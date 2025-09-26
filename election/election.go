@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
+	"github.com/Meander-Cloud/go-arbiter/arbiter"
+
 	"github.com/Meander-Cloud/go-elect/config"
+	g "github.com/Meander-Cloud/go-elect/group"
 	"github.com/Meander-Cloud/go-elect/net/tcp"
 )
 
 type Election struct {
 	c      *config.Config
 	uc     UserCallback
-	a      *arbiter.Arbiter
+	a      *arbiter.Arbiter[g.Group]
 	state  *State
 	matrix *tcp.Matrix
 }
@@ -33,9 +35,15 @@ func NewElection(
 	}
 
 	e := &Election{
-		c:      c,
-		uc:     uc,
-		a:      arbiter.NewArbiter(c),
+		c:  c,
+		uc: uc,
+		a: arbiter.New(
+			&arbiter.Options[g.Group]{
+				LogPrefix: "Arbiter",
+				LogDebug:  c.LogDebug,
+				LogEvent:  true,
+			},
+		),
 		state:  NewState(c),
 		matrix: nil,
 	}

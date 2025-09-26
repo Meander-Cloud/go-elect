@@ -5,10 +5,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/Meander-Cloud/go-arbiter/arbiter"
 	"github.com/Meander-Cloud/go-transport/tcp"
 
-	"github.com/Meander-Cloud/go-elect/arbiter"
 	"github.com/Meander-Cloud/go-elect/config"
+	g "github.com/Meander-Cloud/go-elect/group"
 	m "github.com/Meander-Cloud/go-elect/message"
 	tp "github.com/Meander-Cloud/go-elect/net/tcp/protocol"
 )
@@ -30,7 +31,7 @@ type Matrix struct {
 
 func NewMatrix(
 	c *config.Config,
-	a *arbiter.Arbiter,
+	a *arbiter.Arbiter[g.Group],
 	sh tp.ServerHandler,
 	ch tp.ClientHandler,
 	selfParticipant *m.Participant,
