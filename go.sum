@@ -1,9 +1,9 @@
-github.com/Meander-Cloud/go-arbiter v1.0.0 h1:WzY33KIadnJO67KdsVnpCCtPQZMEwWaaQybqH6IJq8k=
-github.com/Meander-Cloud/go-arbiter v1.0.0/go.mod h1:jH/Xb3csGDg52/N3R4O7Zlqhv5Flx1aSizae+l3FNIs=
-github.com/Meander-Cloud/go-chdyn v1.0.0 h1:bM2ts2mhL7IXPNrpJ9O8SBf1PPku82YG6kwMRfGydmM=
-github.com/Meander-Cloud/go-chdyn v1.0.0/go.mod h1:W4odyJUekeu7qVNNl/EnqX45O8VRCSuLO087pTM3eO4=
-github.com/Meander-Cloud/go-schedule v1.0.0 h1:Ij09atM341kujflk06/VhtngWHmsMoT5qUuNIMYmeiU=
-github.com/Meander-Cloud/go-schedule v1.0.0/go.mod h1:+n7TcPxlPam2TgSi4/NeMikDhTTZo+/RnjDvdVz0FeE=
+github.com/Meander-Cloud/go-arbiter v1.0.1 h1:PBB+JMNORhGQ2DIBUnb0RHIcnqvINVgvDz7dShV1wkU=
+github.com/Meander-Cloud/go-arbiter v1.0.1/go.mod h1:Joe7FmCbt4HGPHWlw2cMTo6UToVmAJPl20Zf7NCLWDM=
+github.com/Meander-Cloud/go-chdyn v1.0.1 h1:Sjv1UcF+7VMo47xC1mRAjCdNjPd0dLINAfXj69FO0WU=
+github.com/Meander-Cloud/go-chdyn v1.0.1/go.mod h1:W4odyJUekeu7qVNNl/EnqX45O8VRCSuLO087pTM3eO4=
+github.com/Meander-Cloud/go-schedule v1.0.1 h1:g9CdgrWoNH86fRRu22gdw9Kad/jNetj1B6nPjT3NiCA=
+github.com/Meander-Cloud/go-schedule v1.0.1/go.mod h1:cZWVli/wtiqSqLgvC7HHG6Hm1vGqEGvKLG3wDlyttr0=
 github.com/Meander-Cloud/go-transport v1.3.4 h1:xB84lX2Wor6ITPwdltW9soxC+m96vh5UFFAJyHqlMyk=
 github.com/Meander-Cloud/go-transport v1.3.4/go.mod h1:NxDLEK/kV9+bwEbTPCRZOdCHJKS2Le6F18Y2VsAqqZQ=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
